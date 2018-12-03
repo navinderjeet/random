@@ -25,7 +25,9 @@ def open_comment_section(browser):
         '--> Warning: Comment Button Not Found:'
         ' May cause issues with browser windows of smaller widths')
     comment_elem = browser.find_elements_by_xpath(
-        "//a[@role='button']/span[text()='Comment']/..")
+        "//textarea[contains(@placeholder,'Add a comment…')]")
+        # "//button/span[text()='Comment']/..")
+        # "//a[@role='button']/span[text()='Comment']/..")
     if len(comment_elem) > 0:
         try:
             browser.execute_script(
@@ -56,7 +58,8 @@ def comment_image(browser, username, comments, blacklist, logger, logfolder):
             # This forces the input box to update the reactJS core
             comment_input[0].send_keys("\b")
             comment_input = get_comment_input(browser)
-            comment_input[0].submit()
+            comment_input[0].dispatchEvent()
+            comment_input[0].sub
             update_activity('comments')
             if blacklist['enabled'] is True:
                 action = 'commented'

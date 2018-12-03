@@ -1,0 +1,6 @@
+lib/
+logs/
+include/
+docs/
+docker_conf/
+bin/

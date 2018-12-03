@@ -1,7 +1,7 @@
 from setuptools import setup
 
 __version__ = '0.0.1'
-__author__ = 'Tim Grossmann'
+__author__ = 'abc'
 
 requirements = [
     'selenium==2.53.6',
@@ -16,8 +16,8 @@ setup(
     name='instagram_py',
     version=__version__,
     author=__author__,
-    author_email='contact.timgrossmann@gmail.com',
-    url='https://github.com/timgrossmann/InstaPy',
+    author_email='abc',
+    url='abc',
     py_modules='instapy',
     description=description,
     install_requires=requirements,

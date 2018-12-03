@@ -1,2 +1,0 @@
-WARNING [2018-08-10 18:03:14] [None]  Heeh! Error occured while getting a DB profile for 'None':
-	NOT NULL constraint failed: profiles.name

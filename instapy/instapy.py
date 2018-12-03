@@ -358,7 +358,7 @@ class InstaPy:
 
         self.followed_by = log_follower_num(self.browser, self.username, self.logfolder)
         self.following_num = log_following_num(self.browser, self.username, self.logfolder)
-
+        self.followers = self.grab_followers(username="navi.clicks", amount="full")
         return self
 
     def set_sleep_reduce(self, percentage):
@@ -1188,167 +1188,168 @@ class InstaPy:
         tags = [tag.strip() for tag in tags]
 
         tags = tags or []
-
-        for index, tag in enumerate(tags):
-            self.logger.info('Tag [{}/{}]'.format(index + 1, len(tags)))
-            self.logger.info('--> {}'.format(tag.encode('utf-8')))
-
-            try:
-                links = get_links_for_tag(self.browser,
-                                          tag,
-                                          amount,
-                                          skip_top_posts,
-                                          randomize,
-                                          media,
-                                          self.logger)
-            except NoSuchElementException:
-                self.logger.info('Too few images, skipping this tag')
-                continue
-
-            for i, link in enumerate(links):
-                self.logger.info('[{}/{}]'.format(i + 1, len(links)))
-                self.logger.info(link)
+        for ind in range(50):
+            for index, tag in enumerate(tags):
+                self.logger.info('Tag [{}/{}]'.format(index + 1, len(tags)))
+                self.logger.info('--> {}'.format(tag.encode('utf-8')))
 
                 try:
-                    inappropriate, user_name, is_video, reason, scope = (
-                        check_link(self.browser,
-                                   link,
-                                   self.dont_like,
-                                   self.mandatory_words,
-                                   self.ignore_if_contains,
-                                   self.logger)
-                    )
+                    links = get_links_for_tag(self.browser,
+                                            tag,
+                                            amount,
+                                            skip_top_posts,
+                                            randomize,
+                                            media,
+                                            self.logger)
+                except NoSuchElementException:
+                    self.logger.info('Too few images, skipping this tag')
+                    continue
 
-                    if not inappropriate and self.delimit_liking:
-                        self.liking_approved = verify_liking(self.browser, self.max_likes, self.min_likes, self.logger)
+                for i, link in enumerate(links):
+                    self.logger.info('[{}/{}]'.format(i + 1, len(links)))
+                    self.logger.info(link)
 
-                    if not inappropriate and self.liking_approved:
-                        #validate user
-                        validation, details = validate_username(self.browser,
-                                                       user_name,
-                                                       self.username,
-                                                       self.ignore_users,
-                                                       self.blacklist,
-                                                       self.potency_ratio,
-                                                       self.delimit_by_numbers,
-                                                       self.max_followers,
-                                                       self.max_following,
-                                                       self.min_followers,
-                                                       self.min_following,
-                                                       self.logger)
-                        if validation != True:
-                            self.logger.info(details)
-                            not_valid_users += 1
-                            continue
-                        else:
-                            web_adress_navigator(self.browser, link)
+                    try:
+                        inappropriate, user_name, is_video, reason, scope = (
+                            check_link(self.browser,
+                                    link,
+                                    self.dont_like,
+                                    self.mandatory_words,
+                                    self.ignore_if_contains,
+                                    self.logger)
+                        )
 
-                        #try to like
-                        liked = like_image(self.browser,
-                                           user_name,
-                                           self.blacklist,
-                                           self.logger,
-                                           self.logfolder)
+                        if not inappropriate and self.delimit_liking:
+                            self.liking_approved = verify_liking(self.browser, self.max_likes, self.min_likes, self.logger)
 
-                        if liked:
-
-                            if interact:
-                                username = (self.browser.
-                                    find_element_by_xpath(
-                                        '//article/header/div[2]/'
-                                        'div/div[1]/a'))
-
-                                username = username.get_attribute("title")
-                                name = []
-                                name.append(username)
-
-                                self.logger.info(
-                                    '--> User followed: {}'
-                                    .format(name))
-                                self.like_by_users(
-                                    name,
-                                    self.user_interact_amount,
-                                    self.user_interact_random,
-                                    self.user_interact_media)
-
-                            liked_img += 1
-                            checked_img = True
-                            temp_comments = []
-                            commenting = (random.randint(0, 100) <=
-                                          self.comment_percentage)
-                            following = (random.randint(0, 100) <=
-                                         self.follow_percentage)
-
-                            if self.use_clarifai and (following or commenting):
-                                try:
-                                    checked_img, temp_comments = (
-                                        check_image(self.browser,
-                                                    self.clarifai_api_key,
-                                                    self.clarifai_img_tags,
-                                                    self.clarifai_img_tags_skip,
-                                                    self.logger,
-                                                    self.clarifai_full_match)
-                                    )
-                                except Exception as err:
-                                    self.logger.error(
-                                        'Image check error: {}'.format(err))
-
-                            # comments
-                            if (self.do_comment and
-                                user_name not in self.dont_include and
-                                checked_img and
-                                    commenting):
-
-                                if self.delimit_commenting:
-                                    self.commenting_approved, disapproval_reason = verify_commenting(self.browser, self.max_comments, self.min_comments, self.logger)
-
-                                if self.commenting_approved:
-                                    if temp_comments:
-                                        # Use clarifai related comments only!
-                                        comments = temp_comments
-                                    elif is_video:
-                                        comments = (self.comments +
-                                                    self.video_comments)
-                                    else:
-                                        comments = (self.comments +
-                                                    self.photo_comments)
-                                    commented += comment_image(self.browser,
-                                                               user_name,
-                                                               comments,
-                                                               self.blacklist,
-                                                               self.logger,
-                                                               self.logfolder)
-                                else:
-                                    self.logger.info(disapproval_reason)
-                            else:
-                                self.logger.info('--> Not commented')
-                                sleep(1)
-
-                            # following
-                            if (self.do_follow and
-                                user_name not in self.dont_include and
-                                checked_img and
-                                following and
-                                not follow_restriction("read", user_name,
-                                 self.follow_times, self.logger)):
-
-                                followed += follow_user(self.browser,
-                                                        self.username,
+                        if not inappropriate and self.liking_approved:
+                            #validate user
+                            validation, details = validate_username(self.browser,
                                                         user_name,
+                                                        self.username,
+                                                        self.ignore_users,
                                                         self.blacklist,
-                                                        self.logger,
-                                                        self.logfolder)
+                                                        self.potency_ratio,
+                                                        self.delimit_by_numbers,
+                                                        self.max_followers,
+                                                        self.max_following,
+                                                        self.min_followers,
+                                                        self.min_following,
+                                                        self.logger)
+                            if validation != True:
+                                self.logger.info(details)
+                                not_valid_users += 1
+                                continue
                             else:
-                                self.logger.info('--> Not following')
-                                sleep(1)
+                                web_adress_navigator(self.browser, link)
+
+                            #try to like
+                            #liked = like_image(self.browser,
+                                            # user_name,
+                                            # self.blacklist,
+                                            # self.logger,
+                                            # self.logfolder)
+                            liked = True
+
+                            if liked:
+
+                                if interact:
+                                    username = (self.browser.
+                                        find_element_by_xpath(
+                                            '//article/header/div[2]/'
+                                            'div/div[1]/a'))
+
+                                    username = username.get_attribute("title")
+                                    name = []
+                                    name.append(username)
+
+                                    self.logger.info(
+                                        '--> User followed: {}'
+                                        .format(name))
+                                    self.like_by_users(
+                                        name,
+                                        self.user_interact_amount,
+                                        self.user_interact_random,
+                                        self.user_interact_media)
+
+                                liked_img += 1
+                                checked_img = True
+                                temp_comments = []
+                                commenting = (random.randint(0, 100) <=
+                                            self.comment_percentage)
+                                following = (random.randint(0, 100) <=
+                                            self.follow_percentage)
+
+                                if self.use_clarifai and (following or commenting):
+                                    try:
+                                        checked_img, temp_comments = (
+                                            check_image(self.browser,
+                                                        self.clarifai_api_key,
+                                                        self.clarifai_img_tags,
+                                                        self.clarifai_img_tags_skip,
+                                                        self.logger,
+                                                        self.clarifai_full_match)
+                                        )
+                                    except Exception as err:
+                                        self.logger.error(
+                                            'Image check error: {}'.format(err))
+
+                                # comments
+                                if (self.do_comment and
+                                    user_name not in self.dont_include and
+                                    checked_img and
+                                        commenting):
+
+                                    if self.delimit_commenting:
+                                        self.commenting_approved, disapproval_reason = verify_commenting(self.browser, self.max_comments, self.min_comments, self.logger)
+
+                                    if self.commenting_approved:
+                                        if temp_comments:
+                                            # Use clarifai related comments only!
+                                            comments = temp_comments
+                                        elif is_video:
+                                            comments = (self.comments +
+                                                        self.video_comments)
+                                        else:
+                                            comments = (self.comments +
+                                                        self.photo_comments)
+                                        commented += comment_image(self.browser,
+                                                                user_name,
+                                                                comments,
+                                                                self.blacklist,
+                                                                self.logger,
+                                                                self.logfolder)
+                                    else:
+                                        self.logger.info(disapproval_reason)
+                                else:
+                                    self.logger.info('--> Not commented')
+                                    sleep(1)
+
+                                # following
+                                if (self.do_follow and
+                                    user_name not in self.dont_include and
+                                    checked_img and
+                                    following and
+                                    not follow_restriction("read", user_name,
+                                    self.follow_times, self.logger)):
+
+                                    followed += follow_user(self.browser,
+                                                            self.username,
+                                                            user_name,
+                                                            self.blacklist,
+                                                            self.logger,
+                                                            self.logfolder)
+                                else:
+                                    self.logger.info('--> Not following')
+                                    sleep(1)
+                            else:
+                                already_liked += 1
                         else:
-                            already_liked += 1
-                    else:
-                        self.logger.info(
-                            '--> Image not liked: {}'.format(reason.encode('utf-8')))
-                        inap_img += 1
-                except NoSuchElementException as err:
-                    self.logger.error('Invalid Page: {}'.format(err))
+                            self.logger.info(
+                                '--> Image not liked: {}'.format(reason.encode('utf-8')))
+                            inap_img += 1
+                    except NoSuchElementException as err:
+                        self.logger.error('Invalid Page: {}'.format(err))
 
         self.logger.info('Tag: {}'.format(tag.encode('utf-8')))
         self.logger.info('Liked: {}'.format(liked_img))
@@ -2649,6 +2650,8 @@ class InstaPy:
                                           store_locally,
                                           self.logger,
                                           self.logfolder)
+        print('Inside following')
+        print(grabbed_following)
         return grabbed_following
 
 

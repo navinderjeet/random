@@ -159,7 +159,7 @@ def login_user(browser,
         click().send_keys(password).perform()
 
     login_button = browser.find_element_by_xpath(
-        "//form/span/button[text()='Log in']")
+        "//button[text()='Log in']")
     ActionChains(browser).move_to_element(login_button).click().perform()
     # update server calls
     update_activity()
